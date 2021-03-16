@@ -26,11 +26,6 @@ type Job struct {
 var reqData = RequestData{Title: "", Location: ""}
 var jobs = make([]Job, 0, 200)
 
-// For testing only
-func printResults(job Job) {
-	fmt.Println(job.Title, " -> ", job.Company, " -> ", job.Location, " -> ", job.Url)
-}
-
 func scrapeMonster(c *colly.Collector) {
 	c.OnHTML("div.flex-row", func(e *colly.HTMLElement) {
 		title := strings.TrimSpace(e.ChildText("a"))
@@ -82,23 +77,11 @@ func scrapeStack(c *colly.Collector) {
 	c.OnHTML("div.-job", func(e *colly.HTMLElement) {
 		title := strings.TrimSpace(e.ChildText("a.s-link"))
 		company := strings.TrimSpace(e.ChildText("h3 > span"))
+		// Remove newline char and all chars after newline in company name
+		companyFinal := company[0:strings.Index(company, "\n")]
 		location := strings.TrimSpace(e.ChildText("span.fc-black-500"))
 		url := strings.TrimSpace(e.ChildAttr("a.s-link[href]", "href"))
 		url = "https://stackoverflow.com" + url
-		// Remove newline char and all chars after newline in company name
-		// Stack overflow returns extra chars.
-		// companyBytes := []byte{}
-		// for i := 0; i < len(company); i++ {
-		// 	if byte(company[i]) != '\n' {
-		// 		companyBytes = append(companyBytes, company[i])
-		// 	} else {
-		// 		break
-		// 	}
-		// }
-		// companyFinal := string(companyBytes)
-
-		// Remove newline char and all chars after newline in company name
-		companyFinal := company[0:strings.Index(company, "\n")]
 
 		job := Job{
 			Title:    title,
@@ -116,19 +99,7 @@ func scrapeStack(c *colly.Collector) {
 	})
 }
 
-func errorHandler(c *colly.Collector) {
-	var collyError error
-	c.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
-		collyError = err
-	})
-
-	if collyError != nil {
-		// Return a response including error
-	}
-}
-
-// Example API request: ?title=software-developer&location=Miami-FL
+// Example request query: ?title=software-developer&location=Miami-FL
 func Handler(w http.ResponseWriter, r *http.Request) {
 	// Get request query params from url
 	query := r.URL.Query()
@@ -150,10 +121,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	cIndeed := colly.NewCollector()
 	cStack := colly.NewCollector()
 
-	errorHandler(cMonster)
-	errorHandler(cIndeed)
-	errorHandler(cStack)
-
 	scrapeMonster(cMonster)
 	scrapeIndeed(cIndeed)
 	scrapeStack(cStack)
@@ -167,14 +134,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	jobsJson = bytes.Replace(jobsJson, []byte("\\u0026"), []byte("&"), -1) // replace explicit unicode code with &
 	fmt.Fprint(w, string(jobsJson))                                        // must explicityly convert json to string before sending
 	jobs = make([]Job, 0, 200)                                             // Clear array of Jobs for next request
-
-	// jsonBytes := bytes.NewBuffer([]byte{})
-	// jsonEncoder := json.NewEncoder(jsonBytes)
-	// jsonEncoder.SetEscapeHTML(false)
-	// jsonEncoder.Encode(jobs)
-
-	// fmt.Fprint(w, jsonBytes.String()) // must explicitly convert bytes to string
-	// jobs = make([]Job, 0, 200)        // Clear array of Jobs for next request
 
 	// Close request
 	r.Body.Close()
