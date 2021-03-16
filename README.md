@@ -26,11 +26,11 @@ go build
 ./jobscraper
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the default result.
+Open [http://localhost:3000](http://localhost:8080) with your browser to see the default result.
 
 ## How to make Queries
 This project accepts query parameters in the URL.
 Query labels include: title, location.
 
- - Structure of a query: http://localhost:3000/?title=foo&location=bar
- - Example: [http://localhost:3000/?title=software-engineer&location=Miami-FL](http://localhost:3000/?title=software-engineer&location=Miami-FL)
+ - Structure of a query: http://localhost:8080/?title=foo&location=bar
+ - Example: [http://localhost:8080/?title=software-engineer&location=Miami-FL](http://localhost:8080/?title=software-engineer&location=Miami-FL)
