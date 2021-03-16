@@ -132,8 +132,15 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Encode map[string]Job to json
 	jobsJson, _ := json.Marshal(jobs)
 	jobsJson = bytes.Replace(jobsJson, []byte("\\u0026"), []byte("&"), -1) // replace explicit unicode code with &
-	fmt.Fprint(w, string(jobsJson))                                        // must explicityly convert json to string before sending
-	jobs = make([]Job, 0, 200)                                             // Clear array of Jobs for next request
+
+	// Set responsewriter's header to let client expect json
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Access-Control-Allow-Origin", "*") // get around cors
+	// Send json with response writer
+	fmt.Fprintf(w, string(jobsJson))
+
+	jobs = make([]Job, 0, 200) // Clear array of Jobs for next request
 
 	// Close request
 	r.Body.Close()
