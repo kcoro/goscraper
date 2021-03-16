@@ -1,11 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"strings"
 
 	"github.com/gocolly/colly"
 )
+
+type RequestData struct {
+	Title    string `json:"title"`
+	Location string `json:"location"`
+}
 
 type Job struct {
 	Title    string `json:"title"`
@@ -14,6 +22,7 @@ type Job struct {
 	Url      string `json:"url"`
 }
 
+var reqData = RequestData{Title: "", Location: ""}
 var jobs = make([]Job, 0, 200)
 
 // For testing only
@@ -35,7 +44,9 @@ func scrapeMonster(c *colly.Collector) {
 			Url:      url,
 		}
 
-		jobs = append(jobs, job)
+		if title != "" && url != "" {
+			jobs = append(jobs, job)
+		}
 	})
 }
 
@@ -54,7 +65,9 @@ func scrapeIndeed(c *colly.Collector) {
 			Url:      url,
 		}
 
-		jobs = append(jobs, job)
+		if title != "" && url != "" {
+			jobs = append(jobs, job)
+		}
 	})
 }
 
@@ -66,14 +79,28 @@ func scrapeStack(c *colly.Collector) {
 		url := strings.TrimSpace(e.ChildAttr("a.s-link[href]", "href"))
 		url = "https://stackoverflow.com" + url
 
+		// Remove newline char and all chars after newline in company name
+		// Stack overflow returns extra chars.
+		companyBytes := []byte{}
+		for i := 0; i < len(company); i++ {
+			if byte(company[i]) != '\n' {
+				companyBytes = append(companyBytes, company[i])
+			} else {
+				break
+			}
+		}
+		companyFinal := string(companyBytes)
+
 		job := Job{
 			Title:    title,
-			Company:  company,
+			Company:  companyFinal,
 			Location: location,
 			Url:      url,
 		}
 
-		jobs = append(jobs, job)
+		if title != "" && url != "" {
+			jobs = append(jobs, job)
+		}
 	})
 }
 
@@ -89,19 +116,16 @@ func errorHandler(c *colly.Collector) {
 	}
 }
 
-func main() {
+func HttpHandler(w http.ResponseWriter, r *http.Request) {
+	// Get request query params from url
+	query := r.URL.Query()
+	reqData.Title = query.Get("title")
+	reqData.Location = query.Get("location")
+
 	// Instantiate default collectors
 	cMonster := colly.NewCollector()
 	cIndeed := colly.NewCollector()
 	cStack := colly.NewCollector()
-
-	// var numVisited = 0 // Specify max num of requests
-	// c.OnRequest(func(r *colly.Request) {
-	// 	if numVisited > 100 {
-	// 		r.Abort()
-	// 	}
-	// 	numVisited++
-	// })
 
 	errorHandler(cMonster)
 	errorHandler(cIndeed)
@@ -111,7 +135,7 @@ func main() {
 	scrapeIndeed(cIndeed)
 	scrapeStack(cStack)
 
-	cMonster.Visit("https://www.monster.com/jobs/search/?q=software-engineer&where=Raleigh__2C-NC&intcid=skr_navigation_nhpso_searchMain")
+	cMonster.Visit("https://www.monster.com/jobs/search/?q=" + reqData.Title + "&where=" + reqData.Location)
 	cIndeed.Visit("https://www.indeed.com/jobs?q=software+engineer&l=Raleigh,+NC&explvl=entry_level")
 	cStack.Visit("https://stackoverflow.com/jobs?q=Software+Engineer&l=North+Carolina%2C+USA&d=20&u=Miles")
 
@@ -119,4 +143,13 @@ func main() {
 	for i := 0; i < len(jobs); i++ {
 		printResults(jobs[i])
 	}
+
+	// Encode map[string]Job to json
+	jobsJson, _ := json.Marshal(jobs)
+	fmt.Fprint(w, string(jobsJson)) // must explicityly convert json to string before sending
+}
+
+func main() {
+	http.HandleFunc("/", HttpHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
