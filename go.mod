@@ -1,4 +1,4 @@
-module github.com/kcoro/collyscraper
+module github.com/kcoro/jobscraper
 
 go 1.16
 
