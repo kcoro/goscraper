@@ -1,4 +1,4 @@
-module github.com/kcoro/jobscraper
+module github.com/kcoro/goscraper
 
 go 1.16
 

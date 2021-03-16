@@ -10,16 +10,17 @@ go version
 ```
 
 Clone, Build and Run Instructions
-- Note on Windows, use backslash '\' instead of forwardslash '/' for all commands.
+- Note on Windows, use backslash '\\' instead of forwardslash '/' for all commands.
 
 ```bash
 # keep your go projects in your go path's go/src
-mkdir ~/go/src/goscraper
-# cd into the cloned repo directory
-cd go/src/goscraper
+# cd into your paths go/src
+cd ~/go/src/
 # clone this repo with https
 git clone https://github.com/kcoro/goscraper.git
-# then build the .exe
+# cd into new project directory
+cd ~/go/src/goscraper
+# build the .exe
 go build
 # run the .exe
 ./jobscraper
