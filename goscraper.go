@@ -54,8 +54,11 @@ func scrapeIndeed(c *colly.Collector) {
 		title := strings.TrimSpace(e.ChildText("a.jobtitle"))
 		company := strings.TrimSpace(e.ChildText("span.company"))
 		location := strings.TrimSpace(e.ChildText("span.location"))
-		url := strings.TrimSpace(e.ChildAttr("a[href]", "href"))
-		url = "https://indeed.com/pagead/clk?mo=r&" + url[17:]
+		url := strings.TrimSpace(e.ChildAttr("h2.title > a", "href"))
+
+		if !strings.Contains(url, "https://indeed.com") {
+			url = "https://indeed.com" + url
+		}
 
 		job := Job{
 			Title:    title,
