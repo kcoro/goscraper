@@ -2,6 +2,9 @@ This is a Go project which scrapes data from job boards Monster, Indeed, and Sta
 The program runs a web server listening for requests. When a request is received it takes query params and scrapes job sites
 with the corresponding job title and location. The program returns a json response listing results.
 
+## View a completed React App querying this Go backend at:
+[https://next-job-board.vercel.app/](https://next-job-board.vercel.app/)
+
 ## Getting Started
 
 Make sure you have Go installed on your machine.
