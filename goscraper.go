@@ -24,30 +24,7 @@ type Job struct {
 }
 
 var reqData = RequestData{Title: "", Location: ""}
-var jobs = make([]Job, 0, 200)
-
-func scrapeMonster(c *colly.Collector) {
-	c.OnHTML("div.flex-row", func(e *colly.HTMLElement) {
-		title := strings.TrimSpace(e.ChildText("a"))
-		company := strings.TrimSpace(e.ChildText("div.company > span.name"))
-		location := strings.TrimSpace(e.ChildText("div.location > span.name"))
-		url := strings.TrimSpace(e.ChildAttr("a[href]", "href"))
-
-		job := Job{
-			Title:    title,
-			Company:  company,
-			Location: location,
-			Url:      url,
-		}
-
-		if location == "" {
-			location = reqData.Location
-		}
-		if title != "" && url != "" {
-			jobs = append(jobs, job)
-		}
-	})
-}
+var jobs = make([]Job, 0, 300)
 
 func scrapeIndeed(c *colly.Collector) {
 	c.OnHTML("div.jobsearch-SerpJobCard", func(e *colly.HTMLElement) {
@@ -70,7 +47,7 @@ func scrapeIndeed(c *colly.Collector) {
 		if location == "" {
 			location = reqData.Location
 		}
-		if title != "" || url != "" {
+		if title != "" && url != "" {
 			jobs = append(jobs, job)
 		}
 	})
@@ -104,33 +81,27 @@ func scrapeStack(c *colly.Collector) {
 
 // Example request query: ?title=software-developer&location=Miami-FL
 func Handler(w http.ResponseWriter, r *http.Request) {
+
 	// Get request query params from url
 	query := r.URL.Query()
 	reqData.Title = query.Get("title")
 	reqData.Location = query.Get("location")
-	// Indeed uses diff formatting, + between words not - like Monster and SO
-	indeedTitle := reqData.Title
-	indeedLocation := reqData.Location
 
-	// Remove space from request param and replace with %20 for querying job sites
-	strings.Replace(reqData.Title, " ", "-", -1)
-	strings.Replace(reqData.Location, " ", "-", -1)
-	// Remove - and replace with + for indeed search query
-	strings.Replace(indeedTitle, "-", "+", -1)
-	strings.Replace(indeedLocation, "-", "+", -1)
+	// Mormalize search query terms for scraping
+	strings.Replace(reqData.Title, " ", "+", -1)
+	strings.Replace(reqData.Location, " ", "+", -1)
+	strings.Replace(reqData.Title, "-", "+", -1)
+	strings.Replace(reqData.Location, "-", "+", -1)
 
 	// Instantiate default collectors
-	cMonster := colly.NewCollector()
-	cIndeed := colly.NewCollector()
 	cStack := colly.NewCollector()
+	cIndeed := colly.NewCollector()
 
-	scrapeMonster(cMonster)
-	scrapeIndeed(cIndeed)
 	scrapeStack(cStack)
+	scrapeIndeed(cIndeed)
 
-	cMonster.Visit("https://www.monster.com/jobs/search/?q=" + reqData.Title + "&where=" + reqData.Location + "&intcid=skr_navigation_nhpso_searchMain")
-	cIndeed.Visit("https://www.indeed.com/jobs?q=" + indeedTitle + "&l=" + indeedLocation + "&explvl=entry_level")
 	cStack.Visit("https://stackoverflow.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "USA&d=20&u=Miles")
+	cIndeed.Visit("https://www.indeed.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "&explvl=entry_level")
 
 	// Encode map[string]Job to json
 	jobsJson, _ := json.Marshal(jobs)
@@ -143,7 +114,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Send json with response writer
 	fmt.Fprintf(w, string(jobsJson))
 
-	jobs = make([]Job, 0, 200) // Clear array of Jobs for next request
+	jobs = make([]Job, 0, 300) // Clear array of Jobs for next request
 
 	// Close request
 	r.Body.Close()
