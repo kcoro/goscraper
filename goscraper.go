@@ -79,6 +79,31 @@ func scrapeStack(c *colly.Collector) {
 	})
 }
 
+// Monster recently changed website structure
+// need to redesign scraper
+func scrapeMonster(c *colly.Collector) {
+	c.OnHTML("div.flex-row", func(e *colly.HTMLElement) {
+		title := strings.TrimSpace(e.ChildText("a"))
+		company := strings.TrimSpace(e.ChildText("div.company > span.name"))
+		location := strings.TrimSpace(e.ChildText("div.location > span.name"))
+		url := strings.TrimSpace(e.ChildAttr("a[href]", "href"))
+
+		job := Job{
+			Title:    title,
+			Company:  company,
+			Location: location,
+			Url:      url,
+		}
+
+		if location == "" {
+			location = reqData.Location
+		}
+		if title != "" && url != "" {
+			jobs = append(jobs, job)
+		}
+	})
+}
+
 // Example request query: ?title=software-developer&location=Miami-FL
 func Handler(w http.ResponseWriter, r *http.Request) {
 
@@ -96,12 +121,17 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Instantiate default collectors
 	cStack := colly.NewCollector()
 	cIndeed := colly.NewCollector()
+	cMonster := colly.NewCollector()
 
 	scrapeStack(cStack)
 	scrapeIndeed(cIndeed)
+	scrapeMonster(cMonster)
 
 	cStack.Visit("https://stackoverflow.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "USA&d=20&u=Miles")
 	cIndeed.Visit("https://www.indeed.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "&explvl=entry_level")
+	// Monster recently changed website structure
+	// need to redesign scraper
+	cMonster.Visit("https://www.monster.com/jobs/search/?q=" + reqData.Title + "&where=" + reqData.Location + "&intcid=skr_navigation_nhpso_searchMain")
 
 	// Encode map[string]Job to json
 	jobsJson, _ := json.Marshal(jobs)
