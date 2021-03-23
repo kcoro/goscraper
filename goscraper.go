@@ -121,17 +121,19 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Instantiate default collectors
 	cStack := colly.NewCollector()
 	cIndeed := colly.NewCollector()
-	cMonster := colly.NewCollector()
+	// Monster recently changed website structure
+	// cMonster := colly.NewCollector()
 
 	scrapeStack(cStack)
 	scrapeIndeed(cIndeed)
-	scrapeMonster(cMonster)
+	// Monster recently changed website structure
+	// scrapeMonster(cMonster)
 
 	cStack.Visit("https://stackoverflow.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "USA&d=20&u=Miles")
 	cIndeed.Visit("https://www.indeed.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "&explvl=entry_level")
 	// Monster recently changed website structure
 	// need to redesign scraper
-	cMonster.Visit("https://www.monster.com/jobs/search/?q=" + reqData.Title + "&where=" + reqData.Location + "&intcid=skr_navigation_nhpso_searchMain")
+	// cMonster.Visit("https://www.monster.com/jobs/search/?q=" + reqData.Title + "&where=" + reqData.Location + "&intcid=skr_navigation_nhpso_searchMain")
 
 	// Encode map[string]Job to json
 	jobsJson, _ := json.Marshal(jobs)
