@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -21,6 +22,20 @@ type Job struct {
 	Company  string `json:"company"`
 	Location string `json:"location"`
 	Url      string `json:"url"`
+}
+
+type GithubJson []struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	URL         string `json:"url"`
+	CreatedAt   string `json:"created_at"`
+	Company     string `json:"company"`
+	CompanyURL  string `json:"company_url"`
+	Location    string `json:"location"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	HowToApply  string `json:"how_to_apply"`
+	CompanyLogo string `json:"company_logo"`
 }
 
 var reqData = RequestData{Title: "", Location: ""}
@@ -104,6 +119,32 @@ func scrapeMonster(c *colly.Collector) {
 	})
 }
 
+// Github Jobs api provides public endpoints for job search
+func queryGithubJobs(reqData RequestData) {
+	resp, _ := http.Get("https://jobs.github.com/positions.json?description=" + reqData.Title + "&location=" + reqData.Location)
+	body, _ := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	githubjson := GithubJson{}
+	json.Unmarshal(body, &githubjson)
+
+	for _, j := range githubjson {
+		job := Job{
+			Title:    j.Title,
+			Company:  j.Company,
+			Location: j.Location,
+			Url:      j.URL,
+		}
+
+		if job.Location == "" {
+			job.Location = reqData.Location
+		}
+		if job.Title != "" && job.Url != "" {
+			jobs = append(jobs, job)
+		}
+	}
+}
+
 // Example request query: ?title=software-developer&location=Miami-FL
 func Handler(w http.ResponseWriter, r *http.Request) {
 
@@ -124,13 +165,16 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Monster recently changed website structure
 	// cMonster := colly.NewCollector()
 
-	scrapeStack(cStack)
+	// Use githubjobs public api
+	queryGithubJobs(reqData)
+
 	scrapeIndeed(cIndeed)
+	scrapeStack(cStack)
 	// Monster recently changed website structure
 	// scrapeMonster(cMonster)
 
-	cStack.Visit("https://stackoverflow.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "USA&d=20&u=Miles")
 	cIndeed.Visit("https://www.indeed.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location + "&explvl=entry_level")
+	cStack.Visit("https://stackoverflow.com/jobs?q=" + reqData.Title + "&l=" + reqData.Location)
 	// Monster recently changed website structure
 	// need to redesign scraper
 	// cMonster.Visit("https://www.monster.com/jobs/search/?q=" + reqData.Title + "&where=" + reqData.Location + "&intcid=skr_navigation_nhpso_searchMain")
