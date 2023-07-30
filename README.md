@@ -13,8 +13,6 @@ go version
 ```
 
 Clone, Build and Run Instructions
-- Note on Windows, use backslash '\\' instead of forwardslash '/' for all commands.
-
 ```bash
 # keep your go projects in your go path's go/src
 # cd into your paths go/src
